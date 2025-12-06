@@ -3,9 +3,10 @@
 A Python-based fluorescence microscopy analysis pipeline for automated detection and quantification of green and blue cells.
 Includes background removal, contrast enhancement, noise suppression, and cell counting using classical image processing and optional Cellpose integration.
 
-# Preprocessing Scripts
-1. bg_removal_blue_mode.py
-2. bg_removal_green_mode.py
+## 1. Preprocessing Scripts
+1a. bg_removal_blue_mode.py
+
+1b. bg_removal_green_mode.py
 
 
 These two scripts are used for the preprocessing of fluorescence microscopy images.
@@ -17,7 +18,7 @@ Images with a green fluorescence background
 
 Because the color distribution and background noise are different in these two datasets, we use two separate preprocessing pipelines, each tuned for its respective background color.
 
-# 1. Description of bg_removal_blue_mode.py:
+### 1a. Description of bg_removal_blue_mode.py:
 
 This script is designed for images where the background contains a blue haze and the blue cells have weak signals with green interference dots.
 
@@ -55,7 +56,19 @@ Since blue cells often contain small green interference dots, the script include
 
 These parameters can be relaxed or tightened depending on how strong or weak the blue fluorescence appears in the dataset.
 
-# 2. Description of bg_removal_green_mode.py:
+Below is the example output produced using the following script.
+
+Original → Background Subtracted → Enhanced
+<p float="left"> <img src="assets/blue/01_original.png" width="230" /> <img src="assets/blue/02_subtracted.png" width="230" /> <img src="assets/blue/03_enhanced.png" width="230" /> </p>
+HSV → Raw Green Mask → Clean Mask
+<p float="left"> <img src="assets/blue/04_hsv.png" width="230" /> <img src="assets/blue/06_mask_green_raw.png" width="230" /> <img src="assets/blue/07_mask_clean.png" width="230" /> </p>
+
+#### Final Output Image
+<img src="assets/blue/08_final_corrected.png" width="350">
+
+
+
+### 1b. Description of bg_removal_green_mode.py:
 
 This script is optimized for images where the background contains green fluorescence artifacts and faint green signals that must be preserved.
 
@@ -71,11 +84,46 @@ The script also uses CLAHE enhancement (clipLimit = 3.0) to amplify visibility o
 
 These parameters can be adjusted based on the fluorescence strength and noise level across different image batches.
 
-### Original Image
-![Original](assets/blue/01_original.png)
+## 2. Cell Segmentation:
 
-### Background Subtracted
-![Subtracted](assets/blue/02_subtracted.png)
+For the cell segmentation flowing are the two methods used Cellpose and the watershed.
 
-### Enhanced Image
-![Enhanced](assets/blue/03_enhanced.png)
+2a. Cellpose based segmentation
+
+2b. Otsu Thresholding based Method
+
+### 2a. Cellpose based segmentation
+
+This script performs automatic detection, segmentation, and classification of green and blue fluorescent cells. Users also receive visual outputs at multiple stages to understand how the analysis progresses.
+
+Image Loading
+
+The image is converted to RGB and saved for reference before any processing.
+
+Pre-processing
+
+The green and blue channels are combined to highlight fluorescence. Gaussian blur reduces background noise, and normalization improves contrast. This produces a cleaner image ideal for segmentation.
+
+Cellpose Segmentation
+
+The cyto2 Cellpose model detects cells automatically and generates a binary mask. It performs well on images with uneven lighting or mixed fluorescence intensity.
+
+Watershed Splitting
+
+Watershed ensures touching or overlapping cells are separated. A distance transform identifies cell centers, local maxima define potential cell regions, and the watershed algorithm splits merged areas into individual cells.
+
+Color Classification (Green vs Blue)
+
+Each segmented cell is examined pixel-by-pixel:
+
+If green intensity is stronger → the cell is green
+
+If blue intensity is stronger → the cell is blue
+
+Morphological operations remove noise. Contours are drawn smoothly using edge detection and contour approximation. Green cells are outlined in yellow, and blue cells in red.
+
+Following is the example output the image that is processed earlier with preprocessing script then further passed to the Cell pose segmentation.
+
+
+
+
