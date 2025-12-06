@@ -70,3 +70,12 @@ Since some green cells may be extremely small, the minimum connected-component s
 The script also uses CLAHE enhancement (clipLimit = 3.0) to amplify visibility of dim and small green cells.
 
 These parameters can be adjusted based on the fluorescence strength and noise level across different image batches.
+
+### Original Image
+![Original](assets/blue/01_original.png)
+
+### Background Subtracted
+![Subtracted](assets/blue/02_subtracted.png)
+
+### Enhanced Image
+![Enhanced](assets/blue/03_enhanced.png)
