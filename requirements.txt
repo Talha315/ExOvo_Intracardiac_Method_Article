@@ -1,13 +1,4 @@
-cellpose==2.2.0
-opencv-python==4.9.0.80
-numpy==1.26.4
-matplotlib==3.8.2
-pandas==2.2.1
-scikit-image==0.22.0
-scipy==1.11.4
-tqdm==4.66.1
-numba==0.58.1
-natsort==8.4.0
-networkx==3.2.1
-torch>=2.0.0
-torchvision>=0.15.0
+!pip install cellpose==2.2.2 or (version 2.2.0)
+!pip install tifffile
+!pip install scikit-image
+!pip install openCV-python
