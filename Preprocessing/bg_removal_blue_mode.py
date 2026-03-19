@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import os
 
 # Input and Output Paths 
-img_path = r"C:\Users\tali23\Downloads\Mock day5 new pics\Mock day5 new pics\Snap-8439a.jpeg"
-output_folder = r"C:\Users\tali23\Downloads\Mock day5 new pics\Mock day5 new pics\mOCK_DAY_5_BK_ISO_NEW_IMG"
+img_path = r"ENTER YOUR INPUT IMAGE PATH HERE"
+output_folder = r"ENTER YOUR OUTPUT FOLDER PATH HERE"
 
 os.makedirs(output_folder, exist_ok=True)
 bgr = cv2.imread(img_path)
