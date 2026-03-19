@@ -8,21 +8,27 @@ from scipy import ndimage as ndi
 import os
 import pandas as pd
 
+# ---------------------------
 # 0. USER CONFIG
-IMAGE_PATH = "/content/Day_05_GD2_Dataset/New_Images_gd_05_bk_iso/Snap-8453a.jpeg"
-OUTPUT_DIR = "/content/GD2_DAY_05_RESULTS"
+# ---------------------------
+IMAGE_PATH = "ENTER YOUR INPUT IMAGE PATH"
+OUTPUT_DIR = "ENTER THE OUTPUT FOLDER PATH"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 base_name = os.path.splitext(os.path.basename(IMAGE_PATH))[0]
-OUTPUT_IMAGE = os.path.join(OUTPUT_DIR, f"{base_name}_output.png")
-OUTPUT_TABLE = os.path.join(OUTPUT_DIR, f"{base_name}_output_table.png")
+OUTPUT_IMAGE = os.path.join(OUTPUT_DIR, f"{base_name}_output.jpeg")
+OUTPUT_TABLE = os.path.join(OUTPUT_DIR, f"{base_name}_output_table.jpeg")
 
+# ---------------------------
 # 1. LOAD IMAGE
+# ---------------------------
 img = cv2.imread(IMAGE_PATH)
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 R, G, B = cv2.split(img)
 
+# ---------------------------
 # 2. PRE-PROCESSING
+# ---------------------------
 gray_input = np.maximum(G, B)
 gray_blur = cv2.GaussianBlur(gray_input, (5, 5), 0)
 gray_norm = cv2.normalize(gray_blur, None, 0, 255, cv2.NORM_MINMAX)
@@ -33,10 +39,11 @@ green_diff = cv2.normalize((G_boost - B).clip(0), None, 0, 255, cv2.NORM_MINMAX)
 clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
 green_diff_clahe = clahe.apply(green_diff.astype(np.uint8))
 
-
+# ---------------------------
 # 3. CELLPOSE
+# ---------------------------
 try:
-    model = models.Cellpose(gpu=True, model_type='cyto2') # cyto and cyto2 can be selected 
+    model = models.Cellpose(gpu=True, model_type='cyto2')
 except:
     model = models.Cellpose(gpu=False, model_type='cyto2')
 
@@ -44,7 +51,9 @@ masks, flows, styles, diams = model.eval(
     gray_norm, channels=[0, 0], diameter=None, min_size=5, rescale=0.75
 )
 
+# ---------------------------
 # 4. WATERSHED
+# ---------------------------
 mask_clean = cv2.morphologyEx((masks > 0).astype(np.uint8),
                               cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
 dist = ndi.distance_transform_edt(mask_clean)
@@ -57,8 +66,9 @@ if len(coords) > 0:
 markers = ndi.label(local_max)[0]
 labels_ws = watershed(-dist, markers, mask=mask_clean)
 
-
+# ---------------------------
 # 5. SUB-CELL COLOR SPLITTING
+# ---------------------------
 contour_img = img.copy()
 
 green_cells = []
@@ -68,8 +78,9 @@ blue_count = 0
 
 kernel = np.ones((3,3), np.uint8)
 
-# ENHANCED CONTOURING
-
+# -----------------------------------------
+# NEW TIGHT + SMOOTH + ENHANCED CONTOURING
+# -----------------------------------------
 def draw_perfect_contour(mask_binary, color):
 
     # ensure uint8 mask
@@ -99,7 +110,9 @@ def draw_perfect_contour(mask_binary, color):
         cv2.polylines(contour_img, [approx], True, color, 1, cv2.LINE_AA)
 
 
+# ---------------------------
 # GREEN + BLUE LOOP
+# ---------------------------
 for cell_id in range(1, labels_ws.max() + 1):
 
     mask = (labels_ws == cell_id)
@@ -111,8 +124,8 @@ for cell_id in range(1, labels_ws.max() + 1):
     G_cell = G[mask]
     B_cell = B[mask]
 
-    green_full = (G_cell > B_cell * 1.15).astype(np.uint8)
-    blue_full  = (B_cell > G_cell * 1.05).astype(np.uint8)
+    green_full = (G_cell > B_cell * 1.05).astype(np.uint8)
+    blue_full  = (B_cell > G_cell * 1.00).astype(np.uint8)
 
     gf = np.zeros_like(mask, dtype=np.uint8)
     bf = np.zeros_like(mask, dtype=np.uint8)
@@ -136,7 +149,7 @@ for cell_id in range(1, labels_ws.max() + 1):
         w = x2 - x1 + 1
         h = y2 - y1 + 1
 
-        if area < 24 and w < 6 and h < 6:
+        if area < 22 and w < 6 and h < 6:
             continue
 
         green_count += 1
@@ -159,7 +172,7 @@ for cell_id in range(1, labels_ws.max() + 1):
         w = x2 - x1 + 1
         h = y2 - y1 + 1
 
-        if area < 4 and w < 1 and h < 1:
+        if area < 4 and w < 2 and h < 2:
             continue
 
         blue_count += 1
@@ -169,9 +182,10 @@ for cell_id in range(1, labels_ws.max() + 1):
         mask_bin = (lab_b == bid).astype(np.uint8)
         draw_perfect_contour(mask_bin, (255,0,0))  # blue
 
-
-# 6. 75PX RADIUS ANALYSIS 
-RADIUS = 75 # the value of radius can be changed as per the analysis requirement
+# ---------------------------
+# 6. PX RADIUS ANALYSIS
+# ---------------------------
+RADIUS = 145  #JUST ENTER YOUR DESIRED RADIUS VALUE HERE
 table_data = []
 
 for label_g, gx, gy in green_cells:
@@ -185,27 +199,31 @@ for label_g, gx, gy in green_cells:
 
     table_data.append([label_g, count_blue])
 
-df = pd.DataFrame(table_data, columns=["Green Cell", "Blue Cells in 75px"])
+df = pd.DataFrame(table_data, columns=["Green Cell", "Blue Cells in 145 px"])
 print(df)
 
-
+# ---------------------------
 # 7. SUMMARY TEXT
+# ---------------------------
 summary = f"Green: {green_count} | Blue: {blue_count} | Total: {green_count + blue_count}"
 cv2.putText(contour_img, summary, (10,25),
             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,0,0), 2)
 
-
+# ---------------------------
 # 8. SAVE OUTPUT
+# ---------------------------
 cv2.imwrite(OUTPUT_IMAGE, cv2.cvtColor(contour_img, cv2.COLOR_RGB2BGR))
 print("Saved IMAGE:", OUTPUT_IMAGE)
 
 plt.figure(figsize=(10,10))
 plt.imshow(contour_img)
 plt.axis("off")
-plt.title("Final Output with Contours")
+plt.title("Final Output")
 plt.show()
 
+# ---------------------------
 # SAVE TABLE IMAGE
+# ---------------------------
 fig, ax = plt.subplots(figsize=(4, len(df)*0.6))
 ax.axis('off')
 tbl = ax.table(cellText=df.values, colLabels=df.columns,
@@ -214,6 +232,6 @@ tbl.auto_set_font_size(False)
 tbl.set_fontsize(11)
 tbl.scale(1,1.4)
 
-plt.title("Blue Cells within 75px of Green Cells")
+plt.title(f"Blue Cells within {RADIUS} px of Green Cells")
 fig.savefig(OUTPUT_TABLE, dpi=300, bbox_inches='tight')
 print("Saved TABLE:", OUTPUT_TABLE)
