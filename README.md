@@ -21,7 +21,7 @@ Before segmentation, background removal is performed, as fluorescence image back
 
 Because the color distribution and background noise are different in these two datasets, we use two separate preprocessing scripts, each tuned for its respective background color.
 
-### 1a. Description of bg_removal_blue_mode.py:
+#### Description of bg_removal_blue_mode.py:
 
 This script is designed for images where the background contains a blue haze and the blue cells have weak signals with green interference dots.
 
@@ -29,7 +29,7 @@ Processing Steps (also shared with the green background script)
 
 Gaussian background subtraction, LAB-based contrast enhancement, HSV conversion, Binary masking, Morphology cleaning, Connected-component filtering, Replace background with black, and then Save final processed image
 
- Key Adjustable Parameters
+#### Key Adjustable Parameters
 
 The blue-background preprocessing script allows several parameters to be tuned depending on the image intensity and noise level. The blue detection is primarily controlled by the hue range (75–160) and the relaxed saturation (≥45) and brightness thresholds (≥80), which help capture weak blue cells.
 
@@ -37,13 +37,10 @@ Additionally, a blue-dominance rule (B > G + 25 and B > R + 25) ensures that eve
 
 Two levels of area filtering are applied:
 
-Initial minimum area = 80 px (removes noise)
+- **Initial minimum area:** 80 px – removes small noise artifacts
+- **Final minimum area:** 120 px – retains only valid cell regions
 
-Final minimum area = 120 px (keeps real cells only)
-
-Since blue cells often contain small green interference dots, the script includes color-correction parameters, reducing the green channel to 40% and the red channel to 85% for pixels classified as “only blue.”
-
-These parameters can be relaxed or tightened depending on how strong or weak the blue fluorescence appears in the dataset.
+Since blue cells often contain small green interference dots, the script includes color-correction parameters, reducing the green channel to 40% and the red channel to 85% for pixels classified as “only blue.” These parameters can be relaxed or tightened depending on how strong or weak the blue fluorescence appears in the dataset.
 
 Below is the example output produced using the following script.
 
@@ -57,11 +54,11 @@ HSV → Raw Green Mask → Clean Mask
 
 
 
-### 1b. Description of bg_removal_green_mode.py:
+#### Description of bg_removal_green_mode.py:
 
 This script is optimized for images where the background contains green fluorescence artifacts and faint green signals that must be preserved.
 
- Key Adjustable Parameters
+#### Key Adjustable Parameters
 
 The green-background preprocessing script uses flexible thresholds to preserve even faint green fluorescence. The primary HSV mask uses a wide hue range (25–105) with relaxed saturation (>5) and value (>15) limits, allowing detection of low-intensity green cells.
 
@@ -69,58 +66,53 @@ The secondary green-intensity mask relies on green dominance (G > R + 5 and G > 
 
 Since some green cells may be extremely small, the minimum connected-component size is set to 3 pixels, making the detection permissive.
 
-The script also uses CLAHE enhancement (clipLimit = 3.0) to amplify visibility of dim and small green cells.
-
-These parameters can be adjusted based on the fluorescence strength and noise level across different image batches.
+The script also uses CLAHE enhancement (clipLimit = 3.0) to amplify visibility of dim and small green cells. These parameters can be adjusted based on the fluorescence strength and noise level across different image batches.
 
 ## 2. Cell_Seg_Count:
 
-The following scripts are available in the folder.
+Once the background has been removed from the images, you can proceed with segmentation and proximity analysis using the Step 04 scripts. You may try both methods and choose the one that provides better results for your data. It is recommended to first try the Otsu-based method, as it does not require GPU support and is faster to execute, whereas the Cellpose-based method requires GPU access and may take longer to run. The following scripts are available in the folder.
 
-2a. Otsu based 
+- **2a.** `Otsu_based_seg.py`
+- **2b.** `Otsu_based_single_cell.py`
+- **2c.** `Cellpose_based_seg.py`
 
-2b. Otsu Thresholding based Method
+#### 2a. Otsu_based_seg.py
+To run this script, go to the 0. USER CONFIG section and provide:
 
-### 2a. Cellpose based segmentation
+the path of the input image with the background already removed, and
+ the output directory where the result images will be saved.
 
-This script performs automatic detection, segmentation, and classification of green and blue fluorescent cells. Users also receive visual outputs at multiple stages to understand how the analysis progresses.
+The output includes:
 
-Image Loading
+the total count of blue cells and green cells, and the proximity analysis based on the selected radius, showing how many blue cells are present around each green cell.
 
-The image is converted to RGB and saved for reference before any processing.
+The results are also generated in table format for easier interpretation and handling. In addition, you need to set the radius value according to your requirement in Section 5: px Radius Analysis of the code.
 
-Pre-processing
+#### Adjustable Parameters in Otsu based script
 
-The green and blue channels are combined to highlight fluorescence. Gaussian blur reduces background noise, and normalization improves contrast. This produces a cleaner image ideal for segmentation.
+| Category | Parameter | Current Value | Description | Effect if Adjusted |
+|----------|-----------|--------------|-------------|--------------------|
+| Thresholding | `Otsu Threshold` | Automatic | Separates cells from background | Changing thresholding strategy can alter detected cell regions |
+| Watershed Seed Detection | `min_distance` | `4` | Minimum distance between detected cell centers | Larger value reduces over-segmentation of nearby cells |
+| Noise Removal | `len(xs) < 5` | `5` pixels | Minimum pixel count required for a detected cell region | Increasing removes very small detected objects |
+| Green Cell Filter | `area < 20`, `w < 6`, `h < 6` | `20, 6, 6` | Removes small green cell fragments | Increasing thresholds removes small green blobs |
+| Blue Cell Filter | `area < 40`, `w < 20`, `h < 20` | `40, 20, 20` | Removes small blue fragments | Larger values keep only larger blue cells |
+#### 2b. Otsu_based_single_cell.py
+**This script is identical to the above but is specifically designed for images containing only green cells (CONTROL GROUP), focusing on single-cell segmentation and counting without proximity analysis.**
 
-Cellpose Segmentation
+#### 2c. Cellpose_based_seg.py
 
-The cyto2 Cellpose model detects cells automatically and generates a binary mask. It performs well on images with uneven lighting or mixed fluorescence intensity.
+To run this script, go to the 0. USER CONFIG section and provide:
 
-Watershed Splitting
+the path of the input image with the background already removed, and the output directory where the result images will be saved.
 
-Watershed ensures touching or overlapping cells are separated. A distance transform identifies cell centers, local maxima define potential cell regions, and the watershed algorithm splits merged areas into individual cells.
+The output includes:
 
-Color Classification (Green vs Blue)
+the total count of blue cells and green cells, and the proximity analysis based on the selected radius, showing how many blue cells are present around each green cell.
 
-Each segmented cell is examined pixel-by-pixel:
+The results are also generated in table format for easier interpretation and handling. In addition, you need to set the radius value according to your requirement in Section 6: px Radius Analysis of the code.
 
-If green intensity is stronger → the cell is green
-
-If blue intensity is stronger → the cell is blue
-
-Morphological operations remove noise. Contours are drawn smoothly using edge detection and contour approximation. Green cells are outlined in yellow, and blue cells in red.
-
-Following is the example output the image that is processed earlier with preprocessing script then further passed to the Cell pose segmentation.
-
-Example Output Produced by the Cellpose Segmentation Script
-
-Input → Preprocess → Cellpose Mask → Watershed
-<p float="left"> <img src="assets/Cellpose_seg_out/Snap-8319_STEP1_INPUT.png" width="200" /> <img src="assets/Cellpose_seg_out/Snap-8319_STEP2_PREPROCESS.png" width="200" /> <img src="assets/Cellpose_seg_out/Snap-8319_STEP3_CELLPOSE_MASK.png" width="200" /> <img src="assets/Cellpose_seg_out/Snap-8319_STEP4_WATERSHED.png" width="200" /> </p>
-Final Output
-<p float="left"> <img src="assets/Cellpose_seg_out/Snap-8319_STEP6_EXPLANATION.png" width="500" /> </p>
-
-### Adjustable Parameters in Cellpose script
+#### Adjustable Parameters in Cellpose script
 
 | Category | Parameter | Current Value | Description | Effect if Adjusted |
 |----------|-----------|--------------|-------------|--------------------|
@@ -131,16 +123,9 @@ Final Output
 | Color Classification (Green) | `G_cell > B_cell * 1.15` | `1.15` | Threshold for classifying pixels as green-dominant cells | Higher value makes green detection stricter |
 | Color Classification (Blue) | `B_cell > G_cell * 1.05` | `1.05` | Threshold for classifying pixels as blue-dominant cells | Higher value makes blue detection stricter |
 
-### 2b. Otsu Thresholding Based Method:
+Example Output Produced by the Segmentation Script
 
-This script performs automatic detection and classification of green and blue fluorescent cells using a lightweight segmentation pipeline based on Otsu thresholding and the watershed algorithm. The image is first pre-processed by enhancing the green and blue channels, reducing noise with Gaussian blur, and normalizing contrast. Instead of using Cellpose, the script applies global Otsu thresholding followed by distance-transform-based watershed splitting to separate touching cells. Each segmented region is then analyzed pixel-by-pixel to determine whether it represents a green or blue cell, using soft color-dominance rules to detect even faint signals. Clean contours are drawn using bilateral filtering and Canny edges for smooth visualization. The script also measures how many blue cells lie within a 75-pixel radius of each green cell and generates both an annotated image and a summary table. This makes the method fast, lightweight, and reliable for datasets with strong backgrounds or low-intensity fluorescence.
-
-### Adjustable Parameters in Otsu Thresholding script
-
-| Category | Parameter | Current Value | Description | Effect if Adjusted |
-|----------|-----------|--------------|-------------|--------------------|
-| Thresholding | `Otsu Threshold` | Automatic | Separates cells from background | Changing thresholding strategy can alter detected cell regions |
-| Watershed Seed Detection | `min_distance` | `4` | Minimum distance between detected cell centers | Larger value reduces over-segmentation of nearby cells |
-| Noise Removal | `len(xs) < 5` | `5` pixels | Minimum pixel count required for a detected cell region | Increasing removes very small detected objects |
-| Green Cell Filter | `area < 20`, `w < 6`, `h < 6` | `20, 6, 6` | Removes small green cell fragments | Increasing thresholds removes small green blobs |
-| Blue Cell Filter | `area < 40`, `w < 20`, `h < 20` | `40, 20, 20` | Removes small blue fragments | Larger values keep only larger blue cells |
+Input → Preprocess → Cellpose Mask → Watershed
+<p float="left"> <img src="assets/Cellpose_seg_out/Snap-8319_STEP1_INPUT.png" width="200" /> <img src="assets/Cellpose_seg_out/Snap-8319_STEP2_PREPROCESS.png" width="200" /> <img src="assets/Cellpose_seg_out/Snap-8319_STEP3_CELLPOSE_MASK.png" width="200" /> <img src="assets/Cellpose_seg_out/Snap-8319_STEP4_WATERSHED.png" width="200" /> </p>
+Final Output
+<p float="left"> <img src="assets/Cellpose_seg_out/Snap-8319_STEP6_EXPLANATION.png" width="500" /> </p>
