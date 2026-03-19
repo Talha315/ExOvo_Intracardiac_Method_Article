@@ -10,7 +10,7 @@ In the protocol for intracardiac delivery and live imaging of NK–tumor interac
 
 A Python-based analysis scripts are designed for the segmentation and quantification of both cell types. The workflow includes classical image processing techniques as well as deep learning-based methods.
 
-**Note:** The scripts can also be used in the Google Colab environment by uploading the dataset, eliminating the need for local setup. The `notebooks/` folder contains a ready-to-use Google Colab notebook along with detailed instructions and a complete explanation of the workflow.
+**Note:** **The scripts can also be used in the Google Colab environment by uploading the dataset, eliminating the need for local setup. The `notebooks/` folder contains a ready-to-use Google Colab notebook along with detailed instructions and a complete explanation of the workflow.**
 
 The provided scripts are ready to use and can be executed by simply specifying the dataset path, which is clearly indicated within scripts. There are certain parameters may need to be adjusted depending on the dataset; these parameters and their effects are explained below in the description of scripts.
 
